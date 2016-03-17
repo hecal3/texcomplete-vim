@@ -1,0 +1,19 @@
+[package]
+name = "texcomplete"
+version = "0.1.0"
+authors = ["hecal3 <hecal3@users.noreply.github.com>"]
+
+
+[lib]
+name = "texparser"
+path = "src/lib.rs"
+
+[[bin]]
+name = "texcomplete"
+path = "src/main.rs"
+
+[dependencies]
+glob = "0.2.11"
+clap = "2.2"
+regex = "0.1.58"
+rustc-serialize = "0.3.18"
