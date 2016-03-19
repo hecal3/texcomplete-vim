@@ -1,21 +1,35 @@
 use std::collections::HashMap;
 use std::fmt;
-use regex::Regex;
-use regex::RegexSet;
-use std::path::Path;
-use std::path::PathBuf;
+use regex::{Regex,RegexSet};
+use std::path::{Path,PathBuf};
 use self::CompletionType::*;
 use std::fs::File;
 use std::io::prelude::Read;
 use std::rc::Rc;
+
 pub use ::Config;
 
-const MATCHINC: &'static [&'static str] = &[r"\\include(\[.*?\])?\{", r"\\input(\[.*?\])?\{"];
-const MATCHBIB: &'static [&'static str] = &[r"\\addbibresource(\[.*?\])?\{",r"\\bibliography(\[.*?\])?\{"];
-const MATCHSEC: &'static [&'static str] = &[r"\\section\*?(\[.*?\])?\{", r"\\chapter\*?(\[.*?\])?\{", r"\\part\*?(\[.*?\])?\{", r"\\subsection\*?(\[.*?\])?\{", r"\\subsubsection\*?(\[.*?\])?\{"];
-const MATCHLBL: &'static [&'static str] = &[r"\\label(\[.*?\])?\{", r"\\label\{"];
-const MATCHGLS: &'static [&'static str] = &[r"\\newglossaryentry\{", r"\\longnewglossaryentry\{"];
-const COMMENTL: &'static str = r"[^\\]%";
+const MATCHINC: &'static [&'static str] = &[r"\\include(\[.*?\])?\{",
+                                            r"\\input(\[.*?\])?\{" ];
+
+const MATCHBIB: &'static [&'static str] = &[r"\\addbibresource(\[.*?\])?\{",
+                                            r"\\bibliography(\[.*?\])?\{" ];
+
+const MATCHSEC: &'static [&'static str] = &[r"\\section\*?(\[.*?\])?\{",
+                                            r"\\chapter\*?(\[.*?\])?\{",
+                                            r"\\part\*?(\[.*?\])?\{",
+                                            r"\\subsection\*?(\[.*?\])?\{",
+                                            r"\\subsubsection\*?(\[.*?\])?\{" ];
+
+const MATCHLBL: &'static [&'static str] = &[r"\\label(\[.*?\])?\{",
+                                            r"\\label\{" ];
+
+const MATCHGLS: &'static [&'static str] = &[r"\\newglossaryentry\{",
+                                            r"\\longnewglossaryentry\{" ];
+const COMMENT: &'static str = r"[^\\]%";
+
+const STRIP_SEC_RIGHT: &'static [char] = &['{', ' ', '*'];
+const STRIP_SEC_LEFT: &'static [char] = &[' ', '\\'];
 
 #[derive(Debug,RustcDecodable,RustcEncodable)]
 pub enum CompletionType {
@@ -38,7 +52,7 @@ impl fmt::Display for Completion {
     }
 }
 
-struct Parsers {
+struct Parser {
     incset: RegexSet,
     bibset: RegexSet,
     secset: RegexSet,
@@ -74,9 +88,9 @@ pub fn single_pass(filepath: &Path, cfg: &Config) -> Vec<Completion> {
     let conn = tomatch.join("|");
     let regexstr = format!(r"({})", conn);
     let re = Regex::new(&regexstr).unwrap();
-    let comre = Regex::new(COMMENTL).unwrap();
+    let comre = Regex::new(COMMENT).unwrap();
 
-    let reg=Rc::new(Parsers{
+    let reg=Rc::new(Parser{
                     incset: incset,
                     bibset: bibset,
                     secset: secset,
@@ -89,7 +103,7 @@ pub fn single_pass(filepath: &Path, cfg: &Config) -> Vec<Completion> {
     _single_pass(filepath,cfg,reg)
 }
 
-fn _single_pass(filepath: &Path, cfg: &Config, reg: Rc<Parsers>) -> Vec<Completion> {
+fn _single_pass(filepath: &Path, cfg: &Config, reg: Rc<Parser>) -> Vec<Completion> {
     let mut results = Vec::new();
 
     if let Ok(mut file) = File::open(&filepath) {
@@ -119,11 +133,11 @@ fn _single_pass(filepath: &Path, cfg: &Config, reg: Rc<Parsers>) -> Vec<Completi
                 results.push(Completion{ label: String::from(lbl.trim()), attributes: Label(0) });
             }
             else if cfg.sections && reg.secset.is_match(typ) {
-                let s_r: &[_] = &['{', ' ', '*'];
-                let s_l: &[_] = &[' ', '\\'];
-                let mat = typ.trim_right_matches(s_r);
-                let mat = mat.trim_left_matches(s_l);
-                results.push(Completion{ label: String::from(lbl.trim()), attributes: Section(String::from(mat)) });
+                let mat = typ.trim_right_matches(STRIP_SEC_RIGHT);
+                let mat = mat.trim_left_matches(STRIP_SEC_LEFT);
+                results.push(
+                    Completion{ label: String::from(lbl.trim()),
+                                attributes: Section(String::from(mat))});
             } else if cfg.glossaries && reg.glsset.is_match(typ) {
 
                 let (entry, rest) = match_parens(re);
@@ -177,9 +191,9 @@ pub fn parse_bib(input: &str) -> Vec<Completion> {
     if split.len() > 0 {
         split.remove(0);
     }
+    let re = Regex::new(r"(\S*)\{").unwrap();
     let mut results = vec![];
     for entry in split {
-        let re = Regex::new(r"(\S*)\{").unwrap();
         if let Some(caps) = re.captures(entry) {
             let art = caps.at(1).unwrap();
             if art.to_lowercase() == "comment" {
@@ -208,7 +222,8 @@ pub fn parse_bib(input: &str) -> Vec<Completion> {
                 if !inval.is_empty() {
                     attr.insert(String::from("authortext"), inval);
                 }
-                results.push( Completion{ label: label, attributes: Citation(attr,String::from(art.to_lowercase())) });
+                results.push( Completion{ label: label,
+                        attributes: Citation(attr,String::from(art.to_lowercase())) });
             }
         }
     }

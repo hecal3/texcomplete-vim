@@ -102,12 +102,9 @@ class Source(Base):
                     sort = line['label']
                 elif variant == 's':
                     abbr = self.__sectype[line['attributes']['fields'][0]] + " " + line['label']
-                    # desc = line['attributes']['fields'][0]
                     desc = ""
                 elif variant == 'l':
                     abbr = "[lbl] " + line['label']
-                    # sort = line['label']
-                    # desc = line['attributes']['fields'][0]
                     desc = ""
                 else:
                     continue
