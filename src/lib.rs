@@ -26,7 +26,7 @@ pub struct Config {
     pub labels: bool,
 }
 
-pub fn parse_path(path: &Path, cfg: Config) -> Vec<Completion> {
+pub fn parse_path<P: AsRef<Path>>(path: P, cfg: Config) -> Vec<Completion> {
     let mut paths = vec![];
     //cfg.includes = false;
     if cfg.bib {
@@ -58,7 +58,7 @@ fn find_mainfile(paths: &Vec<PathBuf>) -> Option<PathBuf> {
 
 fn parse_path_single(paths: Vec<PathBuf>, mut cfg: Config) -> Vec<Completion> {
     match find_mainfile(&paths) {
-        Some(mainfilepath) => single_pass(&mainfilepath, &cfg),
+        Some(mainfilepath) => single_pass(mainfilepath, &cfg),
         None => {
             cfg.includes = false;
             let mut results = vec![];
@@ -107,16 +107,16 @@ fn parse_path_concurrent(paths: Vec<PathBuf>, mut cfg: Config) -> Vec<Completion
     results
 }
 
-fn glob_files(path: &Path) -> Vec<PathBuf> {
-    let vec: Vec<PathBuf> = glob(&format!("{}/**/*.tex", path.display()))
+fn glob_files<P: AsRef<Path>>(path: P) -> Vec<PathBuf> {
+    let vec: Vec<PathBuf> = glob(&format!("{}/**/*.tex", path.as_ref().display()))
         .unwrap().filter_map(Result::ok)
         .map(|x| x.to_path_buf())
         .collect();
     vec
 }
 
-fn glob_bib_files(path: &Path) -> Vec<PathBuf> {
-    let vec: Vec<PathBuf> = glob(&format!("{}/**/*.bib", path.display()))
+fn glob_bib_files<P: AsRef<Path>>(path: P) -> Vec<PathBuf> {
+    let vec: Vec<PathBuf> = glob(&format!("{}/**/*.bib", path.as_ref().display()))
         .unwrap().filter_map(Result::ok)
         .map(|x| x.to_path_buf())
         .collect();

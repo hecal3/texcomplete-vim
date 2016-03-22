@@ -5,6 +5,7 @@ use std::path::{Path,PathBuf};
 use self::CompletionType::*;
 use std::fs::File;
 use std::io::prelude::Read;
+use std::io::BufReader;
 use std::rc::Rc;
 
 pub use ::Config;
@@ -45,6 +46,11 @@ pub struct Completion {
     pub attributes: CompletionType,
 }
 
+impl Completion {
+    pub fn new<N: Into<String>, C: Into<CompletionType>>(name: N, attr: C) -> Completion {
+        Completion { label: name.into(), attributes: attr.into() }
+    }
+}
 
 impl fmt::Display for Completion {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -62,7 +68,7 @@ struct Parser {
     commen: Regex,
 }
 
-pub fn single_pass(filepath: &Path, cfg: &Config) -> Vec<Completion> {
+pub fn single_pass<P: AsRef<Path>>(filepath: P, cfg: &Config) -> Vec<Completion> {
     let incset = RegexSet::new(MATCHINC).unwrap();
     let bibset = RegexSet::new(MATCHBIB).unwrap();
     let secset = RegexSet::new(MATCHSEC).unwrap();
@@ -103,7 +109,7 @@ pub fn single_pass(filepath: &Path, cfg: &Config) -> Vec<Completion> {
     _single_pass(filepath,cfg,reg)
 }
 
-fn _single_pass(filepath: &Path, cfg: &Config, reg: Rc<Parser>) -> Vec<Completion> {
+fn _single_pass<P: AsRef<Path>>(filepath: P, cfg: &Config, reg: Rc<Parser>) -> Vec<Completion> {
     let mut results = Vec::new();
 
     if let Ok(mut file) = File::open(&filepath) {
@@ -122,22 +128,20 @@ fn _single_pass(filepath: &Path, cfg: &Config, reg: Rc<Parser>) -> Vec<Completio
             let (lbl, re) = match_parens(&rest[end-1..]);
 
             if cfg.includes && reg.incset.is_match(typ) {
-                let npath = get_incfilename(&filepath, lbl, false);
+                let npath = get_incfilename(filepath.as_ref(), lbl, false);
                 results.append(&mut _single_pass(&npath, cfg, reg.clone()));
             }
             else if cfg.bib && reg.bibset.is_match(typ) {
-                let npath = get_incfilename(&filepath, lbl, true);
+                let npath = get_incfilename(filepath.as_ref(), lbl, true);
                 results.append(&mut parse_bibfile(&npath));
             }
             else if cfg.labels && reg.lblset.is_match(typ) {
-                results.push(Completion{ label: String::from(lbl.trim()), attributes: Label(0) });
+                results.push(Completion::new(lbl.trim(),Label(0)));
             }
             else if cfg.sections && reg.secset.is_match(typ) {
                 let mat = typ.trim_right_matches(STRIP_SEC_RIGHT);
                 let mat = mat.trim_left_matches(STRIP_SEC_LEFT);
-                results.push(
-                    Completion{ label: String::from(lbl.trim()),
-                                attributes: Section(String::from(mat))});
+                results.push(Completion::new(lbl.trim(), Section(String::from(mat))));
             } else if cfg.glossaries && reg.glsset.is_match(typ) {
 
                 let (entry, rest) = match_parens(re);
@@ -150,7 +154,7 @@ fn _single_pass(filepath: &Path, cfg: &Config, reg: Rc<Parser>) -> Vec<Completio
                     let (descr, _) = match_parens(rest.trim_left());
                     map.insert("description".to_owned(), descr.to_owned());
                 }
-                results.push(Completion{ label: String::from(lbl), attributes: Glossaryentry(map)});
+                results.push(Completion::new(lbl,Glossaryentry(map)));
             }
             rest = re;
         }
@@ -165,8 +169,8 @@ fn is_comment(inp: &str, comre: &Regex) -> bool {
     }
 }
 
-fn get_incfilename(path: &Path, lbl: &str, bib: bool) -> PathBuf {
-    let mut npath = path.parent().unwrap().to_path_buf();
+fn get_incfilename<P: AsRef<Path>>(path: P, lbl: &str, bib: bool) -> PathBuf {
+    let mut npath = path.as_ref().parent().unwrap().to_path_buf();
     npath.push(lbl.trim());
     if bib {
         npath.set_extension("bib");
@@ -176,14 +180,21 @@ fn get_incfilename(path: &Path, lbl: &str, bib: bool) -> PathBuf {
     npath
 }
 
-fn parse_bibfile(filepath: &Path) -> Vec<Completion> {
-    if let Ok(mut file) = File::open(&filepath) {
+fn parse_bibfile<P: AsRef<Path>>(filepath: P) -> Vec<Completion> {
+    if let Ok(file) = File::open(filepath.as_ref()) {
+        let mut reader = BufReader::new(file);
         let mut s = String::new();
-        let _ = file.read_to_string(&mut s);
+        let _ = reader.read_to_string(&mut s);
         parse_bib(&s)
     } else {
         return vec![];
     }
+}
+
+fn split_bib(input: &str) -> Vec<&str> {
+    let re = Regex::new(r"(?m)^@(?-m)").unwrap();
+    let split: Vec<&str> = re.split(input).collect();
+    split
 }
 
 pub fn parse_bib(input: &str) -> Vec<Completion> {
@@ -192,7 +203,7 @@ pub fn parse_bib(input: &str) -> Vec<Completion> {
         split.remove(0);
     }
     let re = Regex::new(r"(\S*)\{").unwrap();
-    let mut results = vec![];
+    let mut results = Vec::with_capacity(split.len());
     for entry in split {
         if let Some(caps) = re.captures(entry) {
             let art = caps.at(1).unwrap();
@@ -205,7 +216,7 @@ pub fn parse_bib(input: &str) -> Vec<Completion> {
             
             let labelsplit: Vec<&str> = dat.splitn(2,',').collect();
             if labelsplit.len() > 1 {
-                let label = labelsplit[0].to_owned();
+                let label = labelsplit[0].trim().to_owned();
 
                 let mut attr: HashMap<String,String> = values(labelsplit[1]).into_iter()
                     .map(|(x,y)| (x.to_owned().to_lowercase(), y.to_owned())).collect();
@@ -222,8 +233,7 @@ pub fn parse_bib(input: &str) -> Vec<Completion> {
                 if !inval.is_empty() {
                     attr.insert(String::from("authortext"), inval);
                 }
-                results.push( Completion{ label: label,
-                        attributes: Citation(attr,String::from(art.to_lowercase())) });
+                results.push( Completion::new(label, Citation(attr,String::from(art.to_lowercase()))));
             }
         }
     }
@@ -311,11 +321,6 @@ fn values(input: &str) -> Vec<(&str,&str)> {
     a
 }
 
-fn split_bib(input: &str) -> Vec<&str> {
-    let re = Regex::new(r"@").unwrap();
-    let split: Vec<&str> = re.split(input).collect();
-    split
-}
 
 fn match_parens(input: &str) -> (&str,&str) {
     let mut counter = 0;
@@ -458,6 +463,28 @@ mod tests {
     use super::*;
     use std::path::Path;
 
+    #[test]
+    fn find_bibfile() {
+        let path = Path::new("path/to/bibfile");
+        assert_eq!(path.is_file(), true);
+        assert_eq!(path.is_dir(), false);
+    }
+
+    #[test]
+    fn open_bibfile() {
+        let path = Path::new("path/to/bibfile");
+        let entrys = super::parse_bibfile(path);
+        assert_eq!(entrys.len(), 25350);
+    }
+
+    #[bench]
+    fn _large_bibfile(b: &mut test::Bencher) {
+        let path = Path::new("path/to/large/bibfile");
+        b.iter(|| {
+            let _ = super::parse_bibfile(path);
+        })
+    }
+
     #[bench]
     fn bench_single_pass(b: &mut test::Bencher) {
 
@@ -470,7 +497,7 @@ mod tests {
             labels: true,
         };
         b.iter(|| {
-            let _ = single_pass(&Path::new("path/to/main/latex/file"), &cfg);
+            let _ = single_pass(Path::new("path/to/main/latex/file"), &cfg);
         })
     }
 }
