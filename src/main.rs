@@ -1,3 +1,6 @@
+#![cfg_attr(feature="clippy", feature(plugin))]
+#![cfg_attr(feature="clippy", plugin(clippy))]
+
 #[macro_use] extern crate clap;
 extern crate texparser;
 extern crate rustc_serialize;
@@ -56,10 +59,16 @@ fn main() {
             labels: action.contains(&"lbl"),
         };
         let ipath = PathBuf::from(&inp.to_mut());
-        let results = match ipath.is_file() {
-             true => single_pass(&ipath, &cfg),
-             false => parse_path(&ipath, cfg),
+        let results = if ipath.is_file() {
+             single_pass(&ipath, &cfg)
+        } else {
+             parse_path(&ipath, cfg)
         };
+
+        //let results = match ipath.is_file() {
+             //true => single_pass(&ipath, &cfg),
+             //false => parse_path(&ipath, cfg),
+        //};
 
         if m.is_present("json") {
             let encoded = json::encode(&results).unwrap();
@@ -69,11 +78,11 @@ fn main() {
                 match result.attributes {
                     Glossaryentry(ref map) => {
                         print!("GLOSSARYENTRY{}{}{}", sep, result.label, sep);
-                        print_map(map, format.as_slice(), sep);
+                        print_map(map, &format, sep);
                     },
                     Citation(ref map, ref typ) => {
                         print!("CITATION{}{}{}{}", sep, result.label, sep, typ);
-                        print_map(map, format.as_slice(), sep);
+                        print_map(map, &format, sep);
                     },
                     Section(ref typ) => {
                         print!("SECTION{}{}{}{}", sep, result.label, sep, typ);

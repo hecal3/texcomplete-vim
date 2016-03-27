@@ -1,3 +1,5 @@
+#![cfg_attr(feature="clippy", feature(plugin))]
+#![cfg_attr(feature="clippy", plugin(clippy))]
 #![cfg_attr(test, feature(test))]
 extern crate glob;
 extern crate regex;
@@ -42,7 +44,7 @@ pub fn parse_path<P: AsRef<Path>>(path: P, cfg: Config) -> Vec<Completion> {
     }
 }
 
-fn find_mainfile(paths: &Vec<PathBuf>) -> Option<PathBuf> {
+fn find_mainfile(paths: &[PathBuf]) -> Option<PathBuf> {
     let re = Regex::new(r"(?m)^[^%]*\\documentclass(?-m)").unwrap();
     for path in paths {
         if let Ok(mut file) = File::open(&path) {
@@ -108,19 +110,17 @@ fn parse_path_concurrent(paths: Vec<PathBuf>, mut cfg: Config) -> Vec<Completion
 }
 
 fn glob_files<P: AsRef<Path>>(path: P) -> Vec<PathBuf> {
-    let vec: Vec<PathBuf> = glob(&format!("{}/**/*.tex", path.as_ref().display()))
+    glob(&format!("{}/**/*.tex", path.as_ref().display()))
         .unwrap().filter_map(Result::ok)
         .map(|x| x.to_path_buf())
-        .collect();
-    vec
+        .collect::<Vec<_>>()
 }
 
 fn glob_bib_files<P: AsRef<Path>>(path: P) -> Vec<PathBuf> {
-    let vec: Vec<PathBuf> = glob(&format!("{}/**/*.bib", path.as_ref().display()))
+    glob(&format!("{}/**/*.bib", path.as_ref().display()))
         .unwrap().filter_map(Result::ok)
         .map(|x| x.to_path_buf())
-        .collect();
-    vec
+        .collect::<Vec<_>>()
 }
 
 /// deprecated
@@ -163,13 +163,13 @@ pub fn parse_file(path: &Path, cfg: &Config) -> Vec<Completion> {
         }
 
         //println!("file:{}", path.display());
-        if cfg.bib && path.extension().unwrap_or(OsStr::new("")) == "bib" {
+        if cfg.bib && path.extension().unwrap_or_else(|| OsStr::new("")) == "bib" {
             //println!("call bib");
             results.append(&mut parse_bib(&s));
         }
 
         if (cfg.glossaries || cfg.sections || cfg.labels)
-            && path.extension().unwrap_or(OsStr::new("")) != "bib" {
+            && path.extension().unwrap_or_else(|| OsStr::new("")) != "bib" {
             //println!("call glos");
             results.append(&mut parse_tex(&s, cfg))
         }

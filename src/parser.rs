@@ -163,7 +163,7 @@ fn _single_pass<P: AsRef<Path>>(filepath: P, cfg: &Config, reg: Rc<Parser>) -> V
 }
 
 fn is_comment(inp: &str, comre: &Regex) -> bool {
-    match inp.rfind("\n") {
+    match inp.rfind('\n') {
         None => false,
         Some(nlpos) => comre.is_match(&inp[nlpos+1..]),
     }
@@ -193,13 +193,14 @@ fn parse_bibfile<P: AsRef<Path>>(filepath: P) -> Vec<Completion> {
 
 fn split_bib(input: &str) -> Vec<&str> {
     let re = Regex::new(r"(?m)^@(?-m)").unwrap();
-    let split: Vec<&str> = re.split(input).collect();
-    split
+    //let split: Vec<&str> = re.split(input).collect::<Vec<&str>();
+    //split
+    re.split(input).collect::<Vec<_>>()
 }
 
 pub fn parse_bib(input: &str) -> Vec<Completion> {
     let mut split = split_bib(input);
-    if split.len() > 0 {
+    if !split.is_empty() {
         split.remove(0);
     }
     let re = Regex::new(r"(\S*)\{").unwrap();
@@ -243,7 +244,7 @@ pub fn parse_bib(input: &str) -> Vec<Completion> {
 fn author_text(authors: &str, year: &str) -> String {
     let mut names = vec![];
     for author in authors.split("and") {
-        let name: Vec<&str> = author.trim().split(",").collect();
+        let name: Vec<&str> = author.trim().split(',').collect();
         names.push(name[0]);
     }
 
@@ -261,7 +262,7 @@ pub fn parse_tex(input: &str, cfg: &Config) -> Vec<Completion> {
     }
     if cfg.glossaries {
         let (mut split, longs) = split_entrys(input);
-        if split.len() > 0 {
+        if !split.is_empty() {
             split.remove(0);
         }
         for line in &split {
@@ -310,9 +311,8 @@ fn values(input: &str) -> Vec<(&str,&str)> {
             //println!("{:?}", value);
             let k: &[_] = &[' ', '{', '}', ',', '\t', '\n', '\r', '%'];
             let v: &[_] = &[' ', ',', '\t', '\n', '\r', '%'];
-            match value {
-                Some(val) => a.push((key.trim_matches(k), val.trim_matches(v))),
-                None => {},
+            if let Some(val) = value {
+                a.push((key.trim_matches(k), val.trim_matches(v)))
             }
         } else {
             break;
@@ -387,10 +387,10 @@ fn split_entrys(input: &str) -> (Vec<&str>, Vec<&str>) {
     let mut longentrys = Vec::new();
     for cap in caps {
         //println!("{:?}, {:?}", cap.name("long"), cap.name("label"));
-        match (cap.name("label"), cap.name("long")) {
-            (Some(label), Some(_)) => {longentrys.push(label);},
-            _ => {},
-        }
+
+        if let (Some(label), Some(_)) = (cap.name("label"), cap.name("long")) {
+            longentrys.push(label);
+        };
     }
     let re = Regex::new(r"\\(long)?newglossaryentry").unwrap();
     let split: Vec<&str> = re.split(input).collect();
@@ -399,7 +399,7 @@ fn split_entrys(input: &str) -> (Vec<&str>, Vec<&str>) {
 }
 
 /// deprecated
-fn parse_entry(entrystr: &str, longs: &Vec<&str>) -> Completion {
+fn parse_entry(entrystr: &str, longs: &[&str]) -> Completion {
     let (label,rest) = match_parens(entrystr);
     let (entry, rest) = match_parens(rest);
 

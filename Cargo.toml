@@ -17,3 +17,7 @@ glob = "0.2.11"
 clap = "2.2"
 regex = "0.1.58"
 rustc-serialize = "0.3.18"
+clippy = { version = "0.0.45", optional = true }
+
+[features]
+default = []
