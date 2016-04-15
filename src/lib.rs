@@ -145,16 +145,16 @@ pub fn parse_file(path: &Path, cfg: &Config) -> Vec<Completion> {
                 match (cap.name("file"), cap.name("inp"), path.parent()) {
                     (Some(files), Some(inp), Some(path)) => {
                         for file in files.split(',') {
-                            let mut npath = path.to_path_buf();
-                            npath.push(file);
+                            let mut new_path = path.to_path_buf();
+                            new_path.push(file);
                             //println!("{}", inp);
                             if inp.contains("bib") {
-                                npath.set_extension("bib");
+                                new_path.set_extension("bib");
                             } else {
-                                npath.set_extension("tex");
+                                new_path.set_extension("tex");
                             }
-                            //println!("{:?}", npath.display());
-                            results.append(&mut parse_file(&npath, cfg));
+                            //println!("{:?}", new_path.display());
+                            results.append(&mut parse_file(&new_path, cfg));
                         }
                     },
                     (_,_,_) => {},
