@@ -1,6 +1,6 @@
 [package]
 name = "texcomplete"
-version = "0.1.1"
+version = "1.0.0"
 authors = ["hecal3 <hecal3@users.noreply.github.com>"]
 
 
@@ -17,7 +17,7 @@ glob = "0.2.11"
 clap = "2.2"
 regex = "0.1.58"
 rustc-serialize = "0.3.18"
-clippy = { version = "*", optional = true }
+clippy = { version = "0.0.63", optional = true }
 
 [features]
 default = []
