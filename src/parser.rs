@@ -106,13 +106,18 @@ pub fn single_pass<P: AsRef<Path>>(filepath: P, cfg: &Config) -> Vec<Completion>
                     commen: comre,
                     });
 
-    _single_pass(filepath,cfg,reg)
+    let fp = filepath.as_ref().extension();
+    if fp.is_some() && fp.unwrap().to_str().unwrap_or("") == "bib" {
+        parse_bibfile(filepath.as_ref())
+    } else {
+        _single_pass(filepath.as_ref(),cfg,reg)
+    }
 }
 
 fn _single_pass<P: AsRef<Path>>(filepath: P, cfg: &Config, reg: Rc<Parser>) -> Vec<Completion> {
     let mut results = Vec::new();
 
-    if let Ok(mut file) = File::open(&filepath) {
+    if let Ok(mut file) = File::open(filepath.as_ref()) {
         let mut s = String::new();
         let _ = file.read_to_string(&mut s);
 
@@ -193,12 +198,10 @@ fn parse_bibfile<P: AsRef<Path>>(filepath: P) -> Vec<Completion> {
 
 fn split_bib(input: &str) -> Vec<&str> {
     let re = Regex::new(r"(?m)^@(?-m)").unwrap();
-    //let split: Vec<&str> = re.split(input).collect::<Vec<&str>();
-    //split
     re.split(input).collect::<Vec<_>>()
 }
 
-pub fn parse_bib(input: &str) -> Vec<Completion> {
+fn parse_bib(input: &str) -> Vec<Completion> {
     let mut split = split_bib(input);
     if !split.is_empty() {
         split.remove(0);
@@ -255,26 +258,7 @@ fn author_text(authors: &str, year: &str) -> String {
     }
 }
 
-pub fn parse_tex(input: &str, cfg: &Config) -> Vec<Completion> {
-    let mut res = vec![];
-    if cfg.sections {
-        res.append(&mut parse_sections(input, cfg));
-    }
-    if cfg.glossaries {
-        let (mut split, longs) = split_entrys(input);
-        if !split.is_empty() {
-            split.remove(0);
-        }
-        for line in &split {
-            let glosentry = parse_entry(&line, &longs);
-            res.push(glosentry);
-        }
-    }
-    res
-}
-
 fn values(input: &str) -> Vec<(&str,&str)> {
-    //let input = input.trim();
     let mut cont = true;
     let mut rest = input.trim();
     let mut a = Vec::new();
@@ -321,7 +305,6 @@ fn values(input: &str) -> Vec<(&str,&str)> {
     a
 }
 
-
 fn match_parens(input: &str) -> (&str,&str) {
     let mut counter = 0;
     let mut start = 0;;
@@ -351,67 +334,6 @@ fn match_parens(input: &str) -> (&str,&str) {
         }
     }
     (&input[start..end-1], &input[end..])
-}
-
-
-/// deprecated
-fn parse_sections(input: &str, cfg: &Config ) -> Vec<Completion> {
-    let mut results = Vec::new();
-    let re = match (cfg.sections, cfg.labels) {
-         (true,true) =>  Regex::new(r"\\(section|chapter|part|subsection|subsubsection|label)\*?(\[.*?\])?\{").unwrap(),
-         (true,false) =>  Regex::new(r"\\(section|chapter|part|subsection|subsubsection)\*?(\[.*?\])?\{").unwrap(),
-         (false,true) =>  Regex::new(r"\\label\*?(\[.*?\])?\{").unwrap(),
-         (false,false) => return results,
-    };
-    let mut rest = input;
-    let k: &[_] = &[' ', '*'];
-
-    while let Some(find) = re.find(rest) {
-        let (start, end) = find;
-        let typ = &rest[start+1..end-1].trim_right_matches(k);
-        let (lbl, re) = match_parens(&rest[end-1..]);
-        if typ == &"label" {
-            results.push(Completion{ label: String::from(lbl.trim()), attributes: Label(0) });
-        } else {
-            results.push(Completion{ label: String::from(lbl.trim()), attributes: Section(String::from(*typ)) });
-        }
-        rest = re;
-    }
-    results
-}
-
-/// deprecated
-fn split_entrys(input: &str) -> (Vec<&str>, Vec<&str>) {
-    let re = Regex::new(r"\\(?P<long>long)?newglossaryentry\{(?P<label>\S+)\}").unwrap();
-    let caps = re.captures_iter(input).into_iter();
-    let mut longentrys = Vec::new();
-    for cap in caps {
-        //println!("{:?}, {:?}", cap.name("long"), cap.name("label"));
-
-        if let (Some(label), Some(_)) = (cap.name("label"), cap.name("long")) {
-            longentrys.push(label);
-        };
-    }
-    let re = Regex::new(r"\\(long)?newglossaryentry").unwrap();
-    let split: Vec<&str> = re.split(input).collect();
-
-    (split, longentrys)
-}
-
-/// deprecated
-fn parse_entry(entrystr: &str, longs: &[&str]) -> Completion {
-    let (label,rest) = match_parens(entrystr);
-    let (entry, rest) = match_parens(rest);
-
-    let mut map: HashMap<String,String> = values(entry).into_iter()
-        .map(|(k,v)| (k.to_owned(),v.to_owned()))
-        .collect();
-
-    if longs.contains(&label) {
-        let (descr, _) = match_parens(rest.trim_left());
-        map.insert("description".to_owned(), descr.to_owned());
-    }
-    Completion{ label: String::from(label), attributes: Glossaryentry(map)}
 }
 
 #[cfg(test)]
@@ -447,7 +369,6 @@ mod tests {
 
         let cfg = Config{
             includes: true,
-            threads: 1,
             bib: true,
             glossaries: true,
             sections: true,
