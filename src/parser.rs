@@ -414,49 +414,6 @@ fn parse_entry(entrystr: &str, longs: &[&str]) -> Completion {
     Completion{ label: String::from(label), attributes: Glossaryentry(map)}
 }
 
-
-//#[allow(dead_code)]
-//pub fn parse_str_concurrent(input: &str) {
-    //let (mut split, longs) = split_entrys(input);
-    //let mut entrys: Vec<String> = split.into_iter()
-        //.map(|i| i.to_owned())
-        //.collect();
-    //entrys.remove(0);
-
-    //let mut guards = vec![];
-    //let threads = num_cpus::get();
-    //let njobs = entrys.len()/threads;
-    //let mut entryvec = Vec::new();
-    //entryvec.push(entrys);
-    //for _ in 1..threads {
-        //let mut ent = entryvec.pop().unwrap();
-        //let nvec = ent.split_off(njobs);
-        //entryvec.push(ent);
-        //entryvec.push(nvec);
-    //}
-
-    //for elem in entryvec {
-        //let child = thread::spawn(move || {
-            //let mut res = Vec::new();
-            //for line in elem {
-                //let glosentry = parse_entry(&line, &longs);
-                //res.push(glosentry); 
-            //}
-            //res
-        //});
-        //guards.push(child);
-    //}
-
-    //let mut results = vec![];
-    //for guard in guards {
-        //let result = guard.join();
-        //match result {
-            //Ok(mut result) => results.append(&mut result),
-            //Err(e) => println!("error {:?}", e),
-        //};
-    //}
-//}
-
 #[cfg(test)]
 mod tests {
     extern crate test;
