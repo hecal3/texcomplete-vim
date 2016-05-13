@@ -229,7 +229,7 @@ fn parse_bib(input: &str) -> Vec<Completion> {
                 {
                     match (attr.get("author"), attr.get("year")) {
                         (Some(author), Some(year)) => {
-                            inval = author_text(&author, &year);
+                            inval = author_text(author, year);
                         },
                         (_,_) => {},
                     }
@@ -267,7 +267,7 @@ fn values(input: &str) -> Vec<(&str,&str)> {
         if let Some(s) = rest.find('=') {
             let value: Option<&str>;
             let key = &rest[..s].trim();
-            rest = &rest[s+1..].trim();
+            rest = rest[s+1..].trim();
 
             rest = match rest.chars().next() {
                  Some('{') => {

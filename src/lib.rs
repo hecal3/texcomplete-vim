@@ -51,7 +51,7 @@ fn find_mainfile(paths: &[PathBuf]) -> Option<PathBuf> {
 }
 
 fn parse_path_single(paths: &[PathBuf], mut cfg: Config) -> Vec<Completion> {
-    match find_mainfile(&paths) {
+    match find_mainfile(paths) {
         Some(mainfilepath) => single_pass(mainfilepath, &cfg),
         None => {
             cfg.includes = false;
