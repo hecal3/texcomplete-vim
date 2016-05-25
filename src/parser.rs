@@ -6,7 +6,6 @@ use self::CompletionType::*;
 use std::fs::File;
 use std::io::prelude::Read;
 use std::io::BufReader;
-use std::rc::Rc;
 
 pub use ::Config;
 
@@ -96,7 +95,7 @@ pub fn single_pass<P: AsRef<Path>>(filepath: P, cfg: &Config) -> Vec<Completion>
     let re = Regex::new(&regexstr).unwrap();
     let comre = Regex::new(COMMENT).unwrap();
 
-    let reg=Rc::new(Parser{
+    let reg = Parser{
                     incset: incset,
                     bibset: bibset,
                     secset: secset,
@@ -104,17 +103,17 @@ pub fn single_pass<P: AsRef<Path>>(filepath: P, cfg: &Config) -> Vec<Completion>
                     glsset: glsset,
                     full: re,
                     commen: comre,
-                    });
+                    };
 
     let fp = filepath.as_ref().extension();
     if fp.is_some() && fp.unwrap().to_str().unwrap_or("") == "bib" {
         parse_bibfile(filepath.as_ref())
     } else {
-        _single_pass(filepath.as_ref(),cfg,reg)
+        _single_pass(filepath.as_ref(), cfg, &reg)
     }
 }
 
-fn _single_pass<P: AsRef<Path>>(filepath: P, cfg: &Config, reg: Rc<Parser>) -> Vec<Completion> {
+fn _single_pass<P: AsRef<Path>>(filepath: P, cfg: &Config, reg: &Parser) -> Vec<Completion> {
     let mut results = Vec::new();
 
     if let Ok(mut file) = File::open(filepath.as_ref()) {
@@ -134,7 +133,7 @@ fn _single_pass<P: AsRef<Path>>(filepath: P, cfg: &Config, reg: Rc<Parser>) -> V
 
             if cfg.includes && reg.incset.is_match(typ) {
                 let npath = get_incfilename(filepath.as_ref(), lbl, false);
-                results.append(&mut _single_pass(&npath, cfg, reg.clone()));
+                results.append(&mut _single_pass(&npath, cfg, reg));
             }
             else if cfg.bib && reg.bibset.is_match(typ) {
                 let npath = get_incfilename(filepath.as_ref(), lbl, true);

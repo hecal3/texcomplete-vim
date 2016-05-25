@@ -1,6 +1,6 @@
 [package]
 name = "texcomplete"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["hecal3 <hecal3@users.noreply.github.com>"]
 
 
