@@ -13,7 +13,7 @@ name = "texcomplete"
 path = "src/main.rs"
 
 [dependencies]
-glob = "0.2.11"
-clap = "2.11.3"
-regex = "0.1.75"
-rustc-serialize = "0.3.19"
+glob = "0.2"
+clap = "2.19"
+regex = "0.1.80"
+rustc-serialize = "0.3.22"
