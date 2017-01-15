@@ -123,7 +123,7 @@ fn _single_pass<P: AsRef<Path>>(filepath: P, cfg: &Config, reg: &Parser) -> Vec<
         let mut rest = s.as_str();
 
         while let Some(find) = reg.full.find(rest) {
-            let (start, end) = find;
+            let (start, end) = (find.start(), find.end());
             if is_comment(&rest[..start+1], &reg.commen) {
                 rest = &rest[end-1..];
                 continue;
@@ -209,7 +209,7 @@ fn parse_bib(input: &str) -> Vec<Completion> {
     let mut results = Vec::with_capacity(split.len());
     for entry in split {
         if let Some(caps) = re.captures(entry) {
-            let art = caps.at(1).unwrap();
+            let art = caps.get(1).unwrap().as_str();
             if art.to_lowercase() == "comment" {
                 continue;
             }

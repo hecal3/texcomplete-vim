@@ -1,6 +1,6 @@
 [package]
 name = "texcomplete"
-version = "1.0.1"
+version = "1.0.2"
 authors = ["hecal3 <hecal3@users.noreply.github.com>"]
 
 
@@ -15,5 +15,5 @@ path = "src/main.rs"
 [dependencies]
 glob = "0.2"
 clap = "2.19"
-regex = "0.1.80"
+regex = "0.2"
 rustc-serialize = "0.3.22"
