@@ -1,6 +1,6 @@
 [package]
 name = "texcomplete"
-version = "1.0.2"
+version = "1.1.0"
 authors = ["hecal3 <hecal3@users.noreply.github.com>"]
 
 
@@ -14,6 +14,8 @@ path = "src/main.rs"
 
 [dependencies]
 glob = "0.2"
-clap = "2.19"
+clap = "2.20"
 regex = "0.2"
-rustc-serialize = "0.3.22"
+serde = "0.9"
+serde_derive = "0.9"
+serde_json = "0.9"

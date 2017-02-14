@@ -1,13 +1,12 @@
-#[macro_use] extern crate clap;
+extern crate clap;
 extern crate texparser;
-extern crate rustc_serialize;
+extern crate serde_json;
 
 use clap::{App, Arg};
 use texparser::{Config,parse_path};
 use std::path::PathBuf;
 use std::borrow::Cow;
 use std::collections::HashMap;
-use rustc_serialize::json;
 use ::texparser::parser::CompletionType::*;
 use ::texparser::parser::single_pass;
 
@@ -59,7 +58,8 @@ fn main() {
         };
 
         if m.is_present("json") {
-            let encoded = json::encode(&results).unwrap();
+            //let encoded = json::encode(&results).unwrap();
+            let encoded = serde_json::to_string(&results).unwrap();
             println!("{}", encoded);
         } else {
             for result in results {

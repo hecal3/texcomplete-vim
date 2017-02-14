@@ -1,7 +1,7 @@
-#![cfg_attr(test, feature(test))]
+//#![cfg_attr(test, feature(test))]
 extern crate glob;
 extern crate regex;
-extern crate rustc_serialize;
+#[macro_use] extern crate serde_derive;
 
 use glob::glob;
 use regex::Regex;
@@ -76,24 +76,24 @@ fn glob_bib_files<P: AsRef<Path>>(path: P) -> Vec<PathBuf> {
         .collect::<Vec<_>>()
 }
 
-#[cfg(test)]
-mod tests {
-    extern crate test;
-    use super::*;
-    use std::path::Path;
+//#[cfg(test)]
+//mod tests {
+    //extern crate test;
+    //use super::*;
+    //use std::path::Path;
 
-    #[bench]
-    fn bench_path(b: &mut test::Bencher) {
+    //#[bench]
+    //fn bench_path(b: &mut test::Bencher) {
 
-        let cfg = Config{
-            includes: true,
-            bib: true,
-            glossaries: true,
-            sections: true,
-            labels: true,
-        };
-        b.iter(|| {
-            let _ = parse_path(&Path::new("path/to/latex/directory"), cfg);
-        })
-    }
-}
+        //let cfg = Config{
+            //includes: true,
+            //bib: true,
+            //glossaries: true,
+            //sections: true,
+            //labels: true,
+        //};
+        //b.iter(|| {
+            //let _ = parse_path(&Path::new("path/to/latex/directory"), cfg);
+        //})
+    //}
+//}

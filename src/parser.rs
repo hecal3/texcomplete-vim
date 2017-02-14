@@ -31,7 +31,7 @@ const COMMENT: &'static str = r"[^\\]%";
 const STRIP_SEC_RIGHT: &'static [char] = &['{', ' ', '*'];
 const STRIP_SEC_LEFT: &'static [char] = &[' ', '\\'];
 
-#[derive(Debug,RustcDecodable,RustcEncodable)]
+#[derive(Debug,Deserialize,Serialize)]
 pub enum CompletionType {
     Glossaryentry(HashMap<String,String>),
     Citation(HashMap<String,String>,String),
@@ -39,7 +39,7 @@ pub enum CompletionType {
     Label(u32),
 }
 
-#[derive(Debug,RustcDecodable,RustcEncodable)]
+#[derive(Debug,Serialize,Deserialize)]
 pub struct Completion {
     pub label: String,
     pub attributes: CompletionType,
